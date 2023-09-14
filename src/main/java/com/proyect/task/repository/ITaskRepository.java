@@ -1,6 +1,6 @@
 package com.proyect.task.repository;
 
-import com.proyect.task.model.Task;
+import com.proyect.task.model.task.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 

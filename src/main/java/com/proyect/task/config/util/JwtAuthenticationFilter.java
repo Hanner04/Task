@@ -1,75 +1,74 @@
 package com.proyect.task.config.util;
 
-import com.proyect.task.service.UserInfoDetails;
+import com.proyect.task.service.jwt.JwtService;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 @Component
-public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
-    @Autowired
-    private final AuthenticationManager authenticationManager;
-    @Autowired
-    private final TokenUtils jwtTokenProvider;
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    public JwtAuthenticationFilter(AuthenticationManager authenticationManager, TokenUtils jwtTokenProvider) {
-        this.authenticationManager = authenticationManager;
-        this.jwtTokenProvider = jwtTokenProvider;
-    }
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            UserInfoDetails userDetails = getUserDetailsFromRequest(request);
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
 
-            String username = userDetails.getUsername();
-            String password = userDetails.getPassword();
+        final String token = getTokenFromRequest(request);
+        final String username;
 
-            return authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password)
-            );
-        } catch (Exception e) {
-            throw new BadCredentialsException("Error al autenticar", e);
+        if (token==null)
+        {
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        username=jwtService.getUsernameFromToken(token);
+
+        if (username!=null && SecurityContextHolder.getContext().getAuthentication()==null)
+        {
+            UserDetails userDetails=userDetailsService.loadUserByUsername(username);
+
+            if (jwtService.isTokenValid(token, userDetails))
+            {
+                UsernamePasswordAuthenticationToken authToken= new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities());
+
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+
+        }
+
+        filterChain.doFilter(request, response);
     }
 
-    @Override
-    protected void successfulAuthentication(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain chain,
-            Authentication authResult
-    ) {
-        UserDetails userDetails = (UserDetails) authResult.getPrincipal();
-        String token = jwtTokenProvider.generateToken(userDetails);
-        response.addHeader("Authorization", "Bearer " + token);
-    }
+    private String getTokenFromRequest(HttpServletRequest request) {
+        final String authHeader=request.getHeader(HttpHeaders.AUTHORIZATION);
 
-    @Override
-    protected void unsuccessfulAuthentication(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            AuthenticationException failed
-    ) throws IOException {
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Autenticación fallida: " + failed.getMessage());
-    }
-
-    private UserInfoDetails getUserDetailsFromRequest(HttpServletRequest request) {
-
-        String username = request.getParameter("username");
-        String password = request.getParameter("password");
-
-        return new UserInfoDetails(username, password);
+        if(StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer "))
+        {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 }

@@ -1,4 +1,4 @@
-package com.proyect.task.model;
+package com.proyect.task.model.task;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;

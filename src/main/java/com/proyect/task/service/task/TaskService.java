@@ -1,6 +1,6 @@
-package com.proyect.task.service;
+package com.proyect.task.service.task;
 
-import com.proyect.task.model.Task;
+import com.proyect.task.model.task.Task;
 import com.proyect.task.repository.ITaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
