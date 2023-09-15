@@ -1,5 +1,6 @@
 package com.proyect.task.config.util;
 
+import com.proyect.task.config.jwt.ApplicationConfig;
 import com.proyect.task.service.jwt.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private static final Logger LOGGER = LogManager.getLogger(JwtAuthenticationFilter.class);
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
@@ -36,6 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token==null)
         {
             filterChain.doFilter(request, response);
+            LOGGER.error("Token is null");
             return;
         }
 
