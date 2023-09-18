@@ -1,6 +1,7 @@
 package com.proyect.task.model.auth;
 
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,7 +27,7 @@ public class UserInfo implements UserDetails {
     private String username;
     @NonNull
     private String password;
-    @NonNull
+    @Nullable
     private String role;
 
     @Override

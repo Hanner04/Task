@@ -18,12 +18,21 @@ public class AuthController {
     @PostMapping
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request)
     {
-        return ResponseEntity.ok(authService.login(request));
+        AuthResponse authResponse = authService.login(request);
+        if(authResponse == null){
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/addUser")
     public ResponseEntity<AuthResponse> addUser(@RequestBody UserInfo request)
     {
+        AuthResponse authResponse = authService.addUser(request);
+
+        if(authResponse == null){
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(authService.addUser(request));
     }
 }

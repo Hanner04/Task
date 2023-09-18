@@ -1,6 +1,5 @@
 package com.proyect.task.config.util;
 
-import com.proyect.task.config.jwt.ApplicationConfig;
 import com.proyect.task.service.jwt.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,8 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,10 +14,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -28,52 +25,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
-    private static final Logger LOGGER = LogManager.getLogger(JwtAuthenticationFilter.class);
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        final String token = getTokenFromRequest(request);
-        final String username;
+        Optional<String> tokenOptional = Optional.ofNullable(getTokenFromRequest(request));
 
-        if (token==null)
-        {
-            filterChain.doFilter(request, response);
-            LOGGER.error("Token is null");
-            return;
-        }
+        tokenOptional.ifPresent(token -> {
+            String username = jwtService.getUsernameFromToken(token);
 
-        username=jwtService.getUsernameFromToken(token);
+            Optional.ofNullable(username)
+                    .filter(user -> SecurityContextHolder.getContext().getAuthentication() == null)
+                    .ifPresent(user -> {
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(user);
 
-        if (username!=null && SecurityContextHolder.getContext().getAuthentication()==null)
-        {
-            UserDetails userDetails=userDetailsService.loadUserByUsername(username);
+                        Optional.of(jwtService.isTokenValid(token, userDetails))
+                                .filter(isValid -> isValid)
+                                .ifPresent(isValid -> {
+                                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                            userDetails,
+                                            null,
+                                            userDetails.getAuthorities());
 
-            if (jwtService.isTokenValid(token, userDetails))
-            {
-                UsernamePasswordAuthenticationToken authToken= new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
+                                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-
-        }
+                                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                                });
+                    });
+        });
 
         filterChain.doFilter(request, response);
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {
-        final String authHeader=request.getHeader(HttpHeaders.AUTHORIZATION);
-
-        if(StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer "))
-        {
-            return authHeader.substring(7);
-        }
-        return null;
+        return Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION))
+                .filter(authHeader -> authHeader.startsWith("Bearer "))
+                .map(authHeader -> authHeader.substring(7))
+                .orElse(null);
     }
 }
