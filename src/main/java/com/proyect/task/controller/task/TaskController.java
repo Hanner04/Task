@@ -17,8 +17,6 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-
-
     @GetMapping("/getAllTasks")
     @Operation(summary = "Get All Task")
     @ResponseStatus(HttpStatus.OK)
@@ -28,8 +26,7 @@ public class TaskController {
 
     @PostMapping()
     @Operation(summary = "Create Task")
-    @ResponseStatus(HttpStatus.CREATED)
-    public Task createTask(@RequestBody Task task) {
+    public ResponseEntity<Object>  createTask(@RequestBody Task task) {
         return taskService.createTask(task);
     }
 
@@ -48,7 +45,7 @@ public class TaskController {
     @PutMapping("/updateTask/{id}")
     @Operation(summary = "Update Task")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Task updateTask(@Valid @PathVariable Long id, @RequestBody Task task) {
+    public ResponseEntity<Object>  updateTask(@Valid @PathVariable Long id, @RequestBody Task task) {
         return taskService.updateTask(id, task);
     }
 

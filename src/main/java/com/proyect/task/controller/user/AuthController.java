@@ -1,12 +1,15 @@
 package com.proyect.task.controller.user;
 
 import com.proyect.task.model.auth.AuthRequest;
-import com.proyect.task.model.auth.AuthResponse;
 import com.proyect.task.model.auth.UserInfo;
 import com.proyect.task.service.auth.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -16,23 +19,23 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request)
+    @Operation(summary = "Get Token")
+    public ResponseEntity<Object> login(@RequestBody AuthRequest request)
     {
-        AuthResponse authResponse = authService.login(request);
-        if(authResponse == null){
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(authResponse);
+        return authService.login(request);
     }
 
     @PostMapping("/addUser")
-    public ResponseEntity<AuthResponse> addUser(@RequestBody UserInfo request)
+    @Operation(summary = "Create user")
+    public ResponseEntity<Object>  addUser(@RequestBody UserInfo request)
     {
-        AuthResponse authResponse = authService.addUser(request);
+        return authService.addUser(request);
+    }
 
-        if(authResponse == null){
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(authService.addUser(request));
+    @GetMapping("/getAllUser")
+    @Operation(summary = "Get All User")
+    @ResponseStatus(HttpStatus.OK)
+    public List<UserInfo> getAllTasks() {
+        return authService.getAllUser();
     }
 }

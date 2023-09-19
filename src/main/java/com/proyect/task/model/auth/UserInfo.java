@@ -1,8 +1,8 @@
 package com.proyect.task.model.auth;
 
 
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -16,36 +16,43 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name="userinfo", uniqueConstraints = {@UniqueConstraint(columnNames = {"username"})})
+@Table(name = "userinfo", uniqueConstraints = {@UniqueConstraint(columnNames = {"username"})})
 
 public class UserInfo implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
     @Basic
-    @Column(nullable = false)
+    @Column(unique = true)
+    @NotBlank(message = "The field username cannot be blank")
     private String username;
     @NonNull
+    @NotBlank(message = "The field password cannot be blank")
     private String password;
-    @Nullable
+    @NonNull
+    @NotBlank(message = "The field role cannot be blank")
     private String role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority((role)));
     }
+
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
+
     @Override
     public boolean isAccountNonLocked() {
         return true;
     }
+
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
+
     @Override
     public boolean isEnabled() {
         return true;
